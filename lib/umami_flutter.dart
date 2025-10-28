@@ -54,11 +54,11 @@ class Umami {
       final packageInfo = await PackageInfo.fromPlatform();
 
       if (platformInfo is AndroidDeviceInfo) {
-        return '${packageInfo.appName}/${packageInfo.version} (Linux; Android ${platformInfo.version.release}; ${platformInfo.model})';
+        return '${packageInfo.packageName}/${packageInfo.version} (Linux; Android ${platformInfo.version.release}; ${platformInfo.model})';
       } else if (platformInfo is IosDeviceInfo) {
-        return '${packageInfo.appName}/${packageInfo.version} (iPhone; CPU iPhone OS ${platformInfo.systemVersion.replaceAll('_', '.')})';
+        return '${packageInfo.packageName}/${packageInfo.version} (iPhone; CPU iPhone OS ${platformInfo.systemVersion.replaceAll('_', '.')})';
       } else {
-        return '${packageInfo.appName}/${packageInfo.version} (${platformInfo.runtimeType})';
+        return '${packageInfo.packageName}/${packageInfo.version} (${platformInfo.runtimeType})';
       }
     } catch (e) {
       debugPrint('Error getting user agent: $e');
