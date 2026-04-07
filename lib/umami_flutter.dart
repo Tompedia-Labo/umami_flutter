@@ -27,6 +27,8 @@ class Umami {
   String? _referrer;
   String? _id;
 
+  String? _cacheToken;
+
   void setHostname(String hostname) => _hostname = hostname;
   void setReferrer(String referrer) => _referrer = referrer;
 
@@ -82,7 +84,17 @@ class Umami {
 
   void identify(String id) {
     _id = id;
-    _sendIdendity({'data': _id});
+    _cacheToken = null;
+
+    _sendIdendity({
+      ..._getPayload(),
+      'data': {'id': _id}
+    });
+  }
+
+  void clearIdentity() {
+    _id = null;
+    _cacheToken = null;
   }
 
   UmamiEventData _getPayload() {
@@ -105,6 +117,13 @@ class Umami {
 
   /// Track a pageview.
   Future<void> trackPageView(String url, String? title) async {
+    if (_id == null) {
+      debugPrint(
+          'Umami: user not authenticated and/or identify() not called. pageview will not be tracked.');
+
+      return;
+    }
+
     _url = url;
     _title = title;
     final payload = _getPayload();
@@ -115,7 +134,14 @@ class Umami {
 
   /// Track a custom event.
   Future<void> trackEvent(String name, {UmamiEventData? data}) async {
-    if (_endpoint == null || _websiteId == null) return;
+    // if (_endpoint == null || _websiteId == null) return;
+    if (_id == null) {
+      debugPrint(
+          'Umami: user not authenticated and/or identify() not called. event will not be tracked.');
+
+      return;
+    }
+
     final UmamiEventData payload = <String, dynamic>{
       ..._getPayload(),
       'name': name,
@@ -131,14 +157,22 @@ class Umami {
   Future<void> _sendEvent(UmamiEventData payload) => _send(payload, 'event');
 
   Future<void> _send(UmamiEventData payload, String type) async {
-    await http.post(
+    final res = await http.post(
       Uri.parse('$_endpoint/api/send'),
       headers: {
         'Content-Type': 'application/json',
         'user-agent': await _userAgent,
+        if (_cacheToken != null) 'x-umami-cache': _cacheToken!,
       },
       body: jsonEncode({'type': type, 'payload': payload}),
     );
+
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      if (body['cache'] != null) {
+        _cacheToken = body['cache'];
+      }
+    }
   }
 }
 
